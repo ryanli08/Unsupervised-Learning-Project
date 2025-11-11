@@ -1,0 +1,114 @@
+import pandas as pd
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn import metrics
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA, FastICA
+from sklearn.random_projection import GaussianRandomProjection as GRP
+
+def bench_kmeans(estimator, labels, X):
+    estimator.fit(X)
+    predictions = estimator.predict(X)
+    try:
+        sil_score = metrics.silhouette_score(X, predictions)
+    except ValueError:
+        sil_score = 0.0
+
+    return {
+        'v_measure': metrics.v_measure_score(labels, predictions),
+        'ari': metrics.adjusted_rand_score(labels, predictions),
+        'silhouette': sil_score,
+        'dbi': metrics.davies_bouldin_score(X, predictions),
+        'chi': metrics.calinski_harabasz_score(X, predictions),
+        'inertia': estimator.inertia_
+    }
+
+def plot_combined_scores(n_clusters, scores, filename):
+    silhouette_scores = [s['silhouette'] for s in scores]
+    ari_scores = [s['ari'] for s in scores]
+
+    fig, ax1 = plt.subplots()
+    ax1.set_xlabel('Number of Clusters')
+    ax1.set_ylabel('Silhouette Score', color='tab:blue')
+    ax1.plot(n_clusters, silhouette_scores, marker='o', color='tab:blue')
+    ax1.tick_params(axis='y', labelcolor='tab:blue')
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel('Adjusted Rand Index', color='tab:red')
+    ax2.plot(n_clusters, ari_scores, marker='x', color='tab:red')
+    ax2.tick_params(axis='y', labelcolor='tab:red')
+
+    fig.tight_layout()
+    plt.title(f"KMeans Scores: {filename}")
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.savefig(f"Images/dr_{filename}_kmeans_combined_scores.png")
+    plt.close()
+
+def get_best_k_table(n_clusters, scores_list, filename):
+    df = pd.DataFrame(scores_list, index=n_clusters)
+    best_sil_k = df['silhouette'].idxmax()
+    best_ari_k = df['ari'].idxmax()
+
+    result_df = pd.DataFrame({
+        "metric": ["silhouette", "ari"],
+        "best_k": [best_sil_k, best_ari_k],
+        "silhouette": [df.loc[best_sil_k]['silhouette'], df.loc[best_ari_k]['silhouette']],
+        "ari": [df.loc[best_sil_k]['ari'], df.loc[best_ari_k]['ari']],
+        "v_measure": [df.loc[best_sil_k]['v_measure'], df.loc[best_ari_k]['v_measure']],
+        "dbi": [df.loc[best_sil_k]['dbi'], df.loc[best_ari_k]['dbi']],
+        "chi": [df.loc[best_sil_k]['chi'], df.loc[best_ari_k]['chi']],
+        "inertia": [df.loc[best_sil_k]['inertia'], df.loc[best_ari_k]['inertia']]
+    })
+
+    result_df = result_df.round(2)
+
+    fig, ax = plt.subplots(figsize=(10, 2))
+    ax.axis('off')
+    table = ax.table(cellText=result_df.values, colLabels=result_df.columns, loc='center')
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1.1, 1.3)
+    plt.savefig(f"Images/dr_{filename}_summary_table.png")
+    plt.close()
+
+    return result_df
+
+def run_kmeans_on_reduced(X_reduced, y, filename):
+    n_clusters = list(range(2, 10))
+    scores = []
+    for k in n_clusters:
+        kmeans = KMeans(n_clusters=k, n_init=10, max_iter=300, random_state=42)
+        scores.append(bench_kmeans(kmeans, y, X_reduced))
+
+    plot_combined_scores(n_clusters, scores, filename)
+    summary_table = get_best_k_table(n_clusters, scores, filename)
+    print(f"\n=== Summary for {filename} ===")
+    print(summary_table)
+    return summary_table
+
+def run_all_dr_kmeans(file_path, dataset_name):
+    df = pd.read_csv(file_path)
+
+    if dataset_name == "cancer":
+        df = df[["Age", "Genetic_Risk", "Air_Pollution", "Alcohol_Use", "Smoking", "Obesity_Level", "Target_Severity_Score"]]
+        df["Severity_Binned"] = pd.cut(df["Target_Severity_Score"], bins=[0, 3.5, 6.5, np.inf], labels=[0, 1, 2])
+        label_col = "Severity_Binned"
+        comps = {"pca": 6, "ica": 6, "rp": 4}
+    elif dataset_name == "bankruptcy":
+        label_col = "Bankrupt?"
+        comps = {"pca": 53, "ica": 8, "rp": 30}
+    else:
+        raise ValueError("Unknown dataset_name. Expected 'cancer' or 'bankruptcy'.")
+
+    y = df[label_col].astype(int).values
+    X = df.select_dtypes(include="number").drop(columns=[label_col], errors="ignore").values
+    X_scaled = StandardScaler().fit_transform(X)
+
+    for method, model in zip(["pca", "ica", "rp"], [PCA, FastICA, GRP]):
+        X_red = model(n_components=comps[method], random_state=42).fit_transform(X_scaled)
+        run_kmeans_on_reduced(X_red, y, f"kmeans_{method}_{dataset_name}")
+
+if __name__ == "__main__":
+    run_all_dr_kmeans("data/bankruptcy_data.csv", "bankruptcy")
+    run_all_dr_kmeans("data/global_cancer_patients_2015_2024.csv", "cancer")
