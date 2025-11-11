@@ -34,7 +34,7 @@ Additionally, a **neural network classifier** was retrained on the reduced featu
 
 ---
 
-## 📊 Key Results  
+## Key Results  
 More details can be found under images/
 - **EM** outperformed K-Means in capturing geometric cluster structure for high-dimensional data.  
 - **Dimensionality reduction** improved cluster compactness and efficiency, especially PCA and ICA.  
