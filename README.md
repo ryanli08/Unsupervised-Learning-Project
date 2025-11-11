@@ -1,10 +1,10 @@
 # Unsupervised Learning Project
 ### Clustering and Dimensionality Reduction on Cancer and Bankruptcy Data  
-**Author:** Ryan Li | M.S. Computer Science (Machine Learning), Georgia Tech  
+**Author:** Ryan Li 
 
 ---
 
-## 🧠 Overview  
+## Overview  
 This project applies **unsupervised learning techniques**—clustering and dimensionality reduction—on two real-world datasets:  
 - **Bankruptcy Data** (95 financial indicators)  
 - **Global Cancer Patients Data (2015–2024)**  
@@ -18,7 +18,7 @@ Additionally, a **neural network classifier** was retrained on the reduced featu
 
 ---
 
-## ⚙️ Methods
+## Methods
 - Clustering evaluated across \(k \in \{2, \ldots, 9\}\) using metrics:  
   - Silhouette Score  
   - Adjusted Rand Index (ARI)  
@@ -35,17 +35,7 @@ Additionally, a **neural network classifier** was retrained on the reduced featu
 ---
 
 ## 📊 Key Results  
-| Method | Best Metric | Observation |
-|--------|--------------|-------------|
-| **K-Means (Bankruptcy)** | Silhouette ≈ 0.13 | Clusters well-separated geometrically but poor label alignment. |
-| **EM (Bankruptcy)** | Silhouette ≈ 0.41 | Best geometric clusters; weak ARI → clusters not matching labels. |
-| **PCA vs ICA** | Identical recon. error | Data likely Gaussian — ICA converges to PCA-like components. |
-| **Cancer Dataset** | All DR methods similar | Low feature count (6) limits clustering improvement. |
-| **Neural Network (Bankruptcy)** | PCA: 0.9614 acc. | Fastest training (29s) with minimal accuracy loss. |
-
----
-
-## 🧩 Insights  
+More details can be found under images/
 - **EM** outperformed K-Means in capturing geometric cluster structure for high-dimensional data.  
 - **Dimensionality reduction** improved cluster compactness and efficiency, especially PCA and ICA.  
 - **Random Projection**, while efficient, introduced distortion—stronger for high-dimensional data.  
@@ -53,5 +43,5 @@ Additionally, a **neural network classifier** was retrained on the reduced featu
 
 ---
 
-## 🗂️ Project Structure  
+
 
